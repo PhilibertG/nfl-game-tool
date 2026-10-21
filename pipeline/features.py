@@ -25,18 +25,6 @@ def _line_of_scrimmage(t, frames):
     return snap[PLAY_KEY + ["x"]].rename(columns={"x": "los"})
 
 
-def _targets(t, frames):
-    """Route runner closest to the ball on the last frame of the play (None if nobody is close)."""
-    last = t.merge(frames, on=PLAY_KEY)
-    last = last[last.frameId == last.lastFrame]
-    ball = last[last.is_ball][PLAY_KEY + ["x", "y"]].rename(columns={"x": "bx", "y": "by"})
-    runners = last[last.is_route].merge(ball, on=PLAY_KEY)
-    runners["d"] = geometry.distance(runners.x, runners.y, runners.bx, runners.by)
-    best = runners.loc[runners.groupby(PLAY_KEY).d.idxmin()]
-    best = best[best.d < config.TARGET_RADIUS]
-    return best[PLAY_KEY + ["nflId"]].assign(target=True)
-
-
 def game_features(tracking, plays, roles):
     """Receiver x frame table for one game file."""
     t = _tag_players(geometry.normalize_direction(tracking), plays, roles)
@@ -61,10 +49,7 @@ def game_features(tracking, plays, roles):
     gap_change = df.groupby(PLAY_KEY + ["nflId"]).sep.diff(CLOSING_LAG)
     df["closing"] = (gap_change * config.FPS / CLOSING_LAG).fillna(0.0)
     df["is_throw"] = df.frameId == df.throwFrame
-
-    df = df.merge(_targets(t, frames), on=PLAY_KEY + ["nflId"], how="left")
-    df["target"] = df.target.fillna(False).astype(bool)
-    return df[FRAME_KEY + ["nflId", "is_throw", "target"] + FEATURES]
+    return df[FRAME_KEY + ["nflId", "is_throw"] + FEATURES]
 
 
 def build_all(plays, roles, log=print):

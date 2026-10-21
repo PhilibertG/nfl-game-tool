@@ -18,8 +18,6 @@ SKILL_POSITIONS = ("WR", "TE", "RB")
 COVERAGE_TYPES = ("Man", "Zone")
 PASS_RESULTS_ATTEMPT = ("C", "I", "IN")
 
-# a route runner is the target if he is this close to the ball on the last frame of the play
-TARGET_RADIUS = 3.0
 # a receiver is "open" when the model gives him at least this completion probability
 OPEN_THRESHOLD = 0.80
 MIN_ROUTES = 80

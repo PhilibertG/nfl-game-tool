@@ -1,7 +1,7 @@
 """Run the full pipeline: python -m pipeline"""
 import time
 
-from . import config, export, features, loading, metrics, model, replays
+from . import config, export, features, loading, metrics, model, replays, targets
 
 
 def main():
@@ -13,6 +13,12 @@ def main():
 
     log("computing per-frame features for every route")
     frames = features.build_all(plays, roles, log)
+
+    log("finding the targeted receiver of each pass")
+    target = targets.find_targets(plays, roles, players)
+    frames = frames.merge(target, on=["gameId", "playId", "nflId"], how="left")
+    frames["target"] = frames.target.fillna(False).astype(bool)
+    log(f"  {len(target)} targeted passes identified")
 
     log("training the completion probability model")
     clf, model_info = model.train(frames, plays, log)

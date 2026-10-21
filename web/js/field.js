@@ -1,109 +1,151 @@
-// Canvas rendering of the field and of one frame of a play. Offense always attacks to the right.
+// Canvas rendering of the field and of one (possibly fractional) frame of a play.
+// Positions are interpolated between two tracking frames so the animation stays smooth at 60 fps.
+// Offense always attacks to the right.
 
-import { probColor, valueAt } from "./utils.js";
+import { cssVar, lastName, lerp, probColor, sampleAt } from "./utils.js";
 
 const LENGTH = 120;
 const WIDTH = 53.3;
-const COLORS = { offense: "#4c9bff", defense: "#ff5d5d", ball: "#c98a4b" };
+
+/** Match the canvas buffer to its displayed size (sharp on high-DPI screens). */
+export function fitCanvas(canvas) {
+  const dpr = window.devicePixelRatio || 1;
+  const w = Math.round(canvas.clientWidth * dpr);
+  const h = Math.round(canvas.clientHeight * dpr);
+  if (canvas.width !== w || canvas.height !== h) {
+    canvas.width = w;
+    canvas.height = h;
+  }
+}
+
+function position(entity, i) {
+  const lo = Math.floor(i);
+  const hi = Math.min(lo + 1, entity.x.length - 1);
+  const t = i - lo;
+  return { x: lerp(entity.x[lo], entity.x[hi], t), y: lerp(entity.y[lo], entity.y[hi], t) };
+}
 
 function drawField(ctx, s) {
-  ctx.fillStyle = "#1f5e33";
+  ctx.fillStyle = "#2f7a46";
   ctx.fillRect(0, 0, LENGTH * s, WIDTH * s);
-  ctx.fillStyle = "#184d29";
+  // mowing stripes
+  ctx.fillStyle = "rgba(255,255,255,0.035)";
+  for (let x = 10; x < 110; x += 10) ctx.fillRect(x * s, 0, 5 * s, WIDTH * s);
+  // end zones
+  ctx.fillStyle = "#256139";
   ctx.fillRect(0, 0, 10 * s, WIDTH * s);
   ctx.fillRect(110 * s, 0, 10 * s, WIDTH * s);
 
-  ctx.strokeStyle = "rgba(255,255,255,0.35)";
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = "rgba(255,255,255,0.4)";
+  ctx.lineWidth = Math.max(1, s * 0.12);
   for (let x = 10; x <= 110; x += 5) {
     ctx.beginPath();
     ctx.moveTo(x * s, 0);
     ctx.lineTo(x * s, WIDTH * s);
     ctx.stroke();
   }
-  ctx.fillStyle = "rgba(255,255,255,0.45)";
-  ctx.font = `${Math.round(2.2 * s)}px system-ui`;
+  ctx.fillStyle = "rgba(255,255,255,0.5)";
+  ctx.font = `600 ${Math.round(2.2 * s)}px Geist, system-ui`;
   ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
   for (let x = 20; x <= 100; x += 10) {
     const label = String(x <= 60 ? x - 10 : 110 - x);
-    ctx.fillText(label, x * s, 4 * s);
-    ctx.fillText(label, x * s, (WIDTH - 2) * s);
+    ctx.fillText(label, x * s, 3.5 * s);
+    ctx.fillText(label, x * s, (WIDTH - 3.5) * s);
   }
 }
 
-function line(ctx, s, x1, y1, x2, y2, color, width = 1, dash = []) {
-  ctx.strokeStyle = color;
-  ctx.lineWidth = width;
-  ctx.setLineDash(dash);
+function dashedLine(ctx, s, a, b) {
+  ctx.strokeStyle = "rgba(255,255,255,0.7)";
+  ctx.lineWidth = Math.max(1, s * 0.12);
+  ctx.setLineDash([s * 0.6, s * 0.5]);
   ctx.beginPath();
-  ctx.moveTo(x1 * s, (WIDTH - y1) * s);
-  ctx.lineTo(x2 * s, (WIDTH - y2) * s);
+  ctx.moveTo(a.x * s, (WIDTH - a.y) * s);
+  ctx.lineTo(b.x * s, (WIDTH - b.y) * s);
   ctx.stroke();
   ctx.setLineDash([]);
 }
 
-function nearestDefender(defenders, x, y, i) {
+function nearest(points, p) {
   let best = null;
   let bestD = Infinity;
-  for (const d of defenders) {
-    const dist = Math.hypot(d.x[i] - x, d.y[i] - y);
-    if (dist < bestD) { bestD = dist; best = d; }
+  for (const q of points) {
+    const d = Math.hypot(q.x - p.x, q.y - p.y);
+    if (d < bestD) { bestD = d; best = q; }
   }
-  return { defender: best, dist: bestD };
+  return best;
 }
 
-/** Draw frame i of a play. Returns the route runners with their current probability. */
+/** Draw the play at fractional frame index i. */
 export function drawFrame(canvas, play, i) {
   const ctx = canvas.getContext("2d");
   const s = canvas.width / LENGTH;
   drawField(ctx, s);
 
+  const colors = { offense: cssVar("--offense"), defense: cssVar("--defense"), ball: cssVar("--ball") };
   const ball = play.entities.find((e) => e.side === "ball");
-  const defenders = play.entities.filter((e) => e.side === "defense");
-  const runners = play.entities.filter((e) => e.p);
+  const players = play.entities.filter((e) => e.side !== "ball").map((e) => ({ ...e, pos: position(e, i) }));
+  const defenders = players.filter((e) => e.side === "defense").map((e) => e.pos);
+  const receivers = players.filter((e) => e.p);
 
-  // line of scrimmage = ball position at the snap
+  // line of scrimmage (where the play starts)
   const los = ball.x[play.snapIndex];
-  line(ctx, s, los, 0, los, WIDTH, "rgba(79,155,255,0.8)", 2);
-
-  // separation lines (before the ball arrives)
-  for (const r of runners) {
-    const { defender } = nearestDefender(defenders, r.x[i], r.y[i], i);
-    if (defender) line(ctx, s, r.x[i], r.y[i], defender.x[i], defender.y[i], "rgba(230,230,230,0.55)", 1, [4, 4]);
-  }
-
-  // players
-  for (const e of play.entities) {
-    if (e.side === "ball") continue;
-    const x = e.x[i] * s;
-    const y = (WIDTH - e.y[i]) * s;
-    ctx.fillStyle = COLORS[e.side];
-    ctx.beginPath();
-    ctx.arc(x, y, 0.75 * s, 0, Math.PI * 2);
-    ctx.fill();
-    if (e.p) {
-      const p = valueAt(e.p, i);
-      ctx.strokeStyle = probColor(p);
-      ctx.lineWidth = e.id === play.focus ? 0.55 * s : 0.35 * s;
-      ctx.beginPath();
-      ctx.arc(x, y, 1.6 * s, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.fillStyle = "#fff";
-      ctx.font = `${e.id === play.focus ? "700 " : ""}${Math.round(1.5 * s)}px system-ui`;
-      ctx.textAlign = "center";
-      const lastName = e.name.split(" ").slice(1).join(" ") || e.name;
-      ctx.fillText(`${lastName} ${p == null ? "" : Math.round(p * 100) + "%"}`, x, y - 2.2 * s);
-    }
-  }
-
-  // ball
-  ctx.fillStyle = COLORS.ball;
+  ctx.strokeStyle = "rgba(96,165,250,0.9)";
+  ctx.lineWidth = s * 0.25;
   ctx.beginPath();
-  ctx.ellipse(ball.x[i] * s, (WIDTH - ball.y[i]) * s, 0.7 * s, 0.45 * s, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = "#fff";
-  ctx.lineWidth = 1;
+  ctx.moveTo(los * s, 0);
+  ctx.lineTo(los * s, WIDTH * s);
   ctx.stroke();
 
-  return runners.map((r) => ({ ...r, current: valueAt(r.p, i) }));
+  for (const r of receivers) {
+    const d = nearest(defenders, r.pos);
+    if (d) dashedLine(ctx, s, r.pos, d);
+  }
+
+  for (const e of players) {
+    const x = e.pos.x * s;
+    const y = (WIDTH - e.pos.y) * s;
+    ctx.fillStyle = colors[e.side];
+    ctx.strokeStyle = "rgba(255,255,255,0.9)";
+    ctx.lineWidth = s * 0.12;
+    ctx.beginPath();
+    ctx.arc(x, y, 0.8 * s, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  // probability rings and labels on top
+  for (const r of receivers) {
+    const p = sampleAt(r.p, i);
+    const focus = r.id === play.focus;
+    const x = r.pos.x * s;
+    const y = (WIDTH - r.pos.y) * s;
+    ctx.strokeStyle = probColor(p);
+    ctx.lineWidth = (focus ? 0.55 : 0.35) * s;
+    ctx.beginPath();
+    ctx.arc(x, y, 1.7 * s, 0, Math.PI * 2);
+    ctx.stroke();
+
+    const label = `${lastName(r.name)}${p == null ? "" : ` ${Math.round(p * 100)}%`}`;
+    ctx.font = `${focus ? 700 : 500} ${Math.round(1.45 * s)}px Geist, system-ui`;
+    const w = ctx.measureText(label).width + s;
+    const ly = y - 3 * s;
+    ctx.fillStyle = focus ? "rgba(255,255,255,0.95)" : "rgba(0,0,0,0.55)";
+    ctx.beginPath();
+    ctx.roundRect(x - w / 2, ly - s, w, 2 * s, s * 0.5);
+    ctx.fill();
+    ctx.fillStyle = focus ? "#111" : "#fff";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(label, x, ly);
+  }
+
+  const b = position(ball, i);
+  ctx.fillStyle = colors.ball;
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = s * 0.12;
+  ctx.beginPath();
+  ctx.ellipse(b.x * s, (WIDTH - b.y) * s, 0.75 * s, 0.48 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
 }

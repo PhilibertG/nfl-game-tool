@@ -2,9 +2,9 @@
 
 **Who gets open, when, and which open receivers the quarterback leaves on the table (WR · TE · RB).**
 
-We built a model that reads the NFL tracking data frame by frame and gives every route runner (WR, TE, RB) a live *"chance of a catch if the ball were thrown to him right now"*, plus two metrics on top of it: **Separation Over Expected** (space at the throw compared with receivers lined up in the same spot against the same coverage) and **Ignored Open** (the receiver was the best option on the field at the throw, and the ball went elsewhere: 886 times in 8 weeks). The data backs it up: targeted receivers with under 2 yards of space are caught 56% of the time, against 87% with 6-8 yards. It also shows that receivers do not get open against every coverage in the same way: TE Mark Andrews gets +0.92 yds vs man but −0.38 vs zone, and WR Rondale Moore is the most open receiver in the league (+2.1 yds). A **coach** uses the Game Plan tab to pick who to feature against next week's defense, a **scout** uses the Receivers board to rank players independently of their quarterback, and a **broadcaster** uses the Play Lab replays to show the open man the quarterback missed.
+We built a model that reads the NFL tracking data frame by frame and gives every route runner (WR, TE, RB) a live *"chance of a catch if the ball were thrown to him right now"*, plus two metrics on top of it: **Separation Over Expected** (space at the throw compared with receivers lined up in the same spot against the same coverage) and **Ignored Open** (the receiver was the best option on the field at the throw, and the ball went elsewhere: 2,745 times in 8 weeks). The data backs it up: targeted receivers with under 2 yards of space are caught 41% of the time, against 81% with 6-8 yards. It also shows that receivers do not get open against every coverage in the same way: TE Mark Andrews gets +0.92 yds vs man but −0.38 vs zone, and WR Rondale Moore is the most open receiver in the league (+2.1 yds). A **coach** uses the Game plan tab to pick who to feature against next week's defense, a **scout** uses the Players tab to rank players independently of their quarterback, and a **broadcaster** uses the Watch plays replays to show the open man the quarterback missed.
 
-![Play Lab](outputs/screenshots/lab.png)
+![Watch plays](outputs/screenshots/lab.png)
 
 ---
 
@@ -29,6 +29,7 @@ It will:
 | `PORT=9000 ./run.sh` | serve on another port |
 | `NO_BROWSER=1 ./run.sh` | do not open the browser automatically |
 | `.venv/bin/python -m pipeline` | run only the analysis |
+| `http://localhost:8000/?help=0` | open the app without the automatic help dialog |
 
 `web/data/data.json` is committed, so the app also works as a static site (for example GitHub Pages pointing at the `web/` folder) without running Python.
 
@@ -38,12 +39,15 @@ It will:
 
 | Tab | For | What it shows |
 |---|---|---|
-| **Play Lab** | broadcaster | 78 showcase plays replayed on a field. Each route runner has a ring coloured by his live catch probability, a dashed line to his nearest defender, and a timeline of the probability of every receiver from snap to throw. Three categories: *Open receiver ignored*, *Wide-open catch*, *Tight-window catch*. |
-| **Receivers** | scout | Sortable, searchable table of 180 receivers (≥ 80 routes): SOE, SOE vs man, SOE vs zone, open at throw, ignored opens. Clicking a player opens a card with percentiles, a plain-language verdict ("man-coverage beater", "zone specialist") and a button to watch his plays. |
+| **Watch plays** | broadcaster | 90 showcase plays replayed on a field (smooth 60 fps animation, positions interpolated between the 10 Hz tracking frames). Each route runner has a ring coloured by his live catch probability, a dashed line to his nearest defender, and a timeline of the probability of every receiver from snap to throw. Three categories: *Open receiver ignored*, *Wide-open catch*, *Tight-window catch*. |
+| **Players** | scout | Sortable, searchable table of 180 receivers (≥ 80 routes): SOE, SOE vs man, SOE vs zone, open at throw, ignored opens. Clicking a player opens a card with percentiles, a plain-language verdict ("man-coverage beater", "zone specialist") and a button to watch his plays. |
 | **Game Plan** | coach | Pick your offense and the opponent's defense. The opponent's man/zone mix is weighted against each of your receivers' SOE vs man and vs zone to rank who to feature. |
-| **Method** | everyone | Validation chart (completion vs space), model calibration chart, metric definitions and limits. |
+| **How it works** | everyone | Validation chart (completion vs space), model calibration chart, metric definitions and limits. |
 
-![Receivers](outputs/screenshots/board.png)
+New to football? The app opens with a one-minute explanation and a glossary, and every technical word has a tooltip.
+
+![Help](outputs/screenshots/help.png)
+![Players](outputs/screenshots/board.png)
 ![Game plan](outputs/screenshots/plan.png)
 
 ---
@@ -52,15 +56,15 @@ It will:
 
 1. **Normalisation**: every play is flipped so the offense attacks to the right (`playDirection`).
 2. **Per-frame features** for each route runner (PFF role `Pass Route`) from snap to throw: distance to the nearest defender, how fast that gap is closing, speed, depth past the line of scrimmage, distance to the quarterback, distance to the sideline, time since snap.
-3. **Target**: the dataset does not name the targeted receiver, so we take the route runner closest to the ball on the last frame of the play (within 3 yards).
-4. **Model**: logistic regression and gradient boosting are compared with 5-fold cross-validation on targeted throws (C vs I/IN). The best one (logistic regression, AUC 0.67) is then applied to **every frame of every route**, which gives the live probability.
+3. **Target**: the tracking does not name the targeted receiver (and stops 0.5 s after the throw), so we read the receiver's name in the official play text (`pass short right to C.Godwin`): 7,287 passes identified.
+4. **Model**: logistic regression and gradient boosting are compared with 5-fold cross-validation on targeted throws (C vs I/IN). The best one (gradient boosting, AUC 0.75) is then applied to **every frame of every route**, which gives the live probability.
 5. **Metrics**
    - *Separation Over Expected*: space at the throw minus the mean of the same PFF alignment (e.g. `SLWR`, `TE-L`, `HB`) against the same coverage type (man / zone).
    - *Open at throw*: share of routes with a catch probability ≥ 80% at the throw.
    - *Ignored open*: the receiver had the highest probability on the play, ≥ 80%, and someone else was targeted.
    - *Game plan score*: `man_rate × SOE_man + (1 − man_rate) × SOE_zone`.
 
-**Limits**: only weeks 1-8 of 2021; the target is inferred; the model only knows positions and speeds (no pressure on the QB, no ball placement); probabilities before the throw are an extrapolation of a model trained at the throw; running backs get easy space on check-downs, which is why SOE compares them only to other backfield alignments.
+**Limits**: only weeks 1-8 of 2021; the target comes from the play text (a few plays with unusual names are skipped); the model only knows positions and speeds (no pressure on the QB, no ball placement); probabilities before the throw are an extrapolation of a model trained at the throw; running backs get easy space on check-downs, which is why SOE compares them only to other backfield alignments.
 
 ---
 
@@ -71,6 +75,7 @@ run.sh                 one command: setup, download, analysis, web server
 requirements.txt
 pipeline/              Python analysis (python -m pipeline)
   config.py            paths and constants (thresholds, event names)
+  targets.py           targeted receiver read from the play description
   loading.py           read the csv files
   geometry.py          field orientation, key frames, nearest defender
   features.py          per-frame features of every route runner
@@ -81,11 +86,12 @@ pipeline/              Python analysis (python -m pipeline)
   __main__.py          runs the steps in order
 web/                   static web app, no build step
   index.html
-  css/style.css
-  js/main.js           loads the data, tabs
-  js/replay.js         Play Lab controller
+  css/style.css        shadcn/ui default theme tokens (paste any ui.shadcn.com theme to restyle)
+  js/main.js           loads the data, tabs, light / dark theme
+  js/help.js           "New to football?" dialog and glossary
+  js/replay.js         Watch plays: smooth playback and timeline
   js/field.js          canvas rendering of the field and players
-  js/board.js          Receivers table and player card
+  js/board.js          Players table and profile card
   js/planner.js        Game Plan
   js/method.js         Method tab
   js/charts.js         small SVG charts
