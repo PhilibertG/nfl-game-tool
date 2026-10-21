@@ -10,7 +10,7 @@ We built a model that reads the NFL tracking data frame by frame and gives every
 
 ## How to launch
 
-One command (Linux / macOS, needs `python3 ≥ 3.10` and `git`):
+One command (Linux / macOS). Requirements: **python3 ≥ 3.10**, **git**, **Node.js ≥ 18**.
 
 ```bash
 ./run.sh
@@ -18,33 +18,35 @@ One command (Linux / macOS, needs `python3 ≥ 3.10` and `git`):
 
 It will:
 
-1. create a virtual env in `.venv/` and install `requirements.txt` (pandas, numpy, scikit-learn);
+1. create a Python virtual env in `.venv/` and install `requirements.txt` (pandas, numpy, scikit-learn);
 2. download the dataset into `raw_data/` (~1 GB, first run only);
-3. run the analysis pipeline (~35 s), which writes `web/data/data.json` and `outputs/leaderboard.csv`;
-4. serve the web app on **http://localhost:8000** and open it in your browser.
+3. run the analysis pipeline (~35 s), which writes `web/public/data/data.json` and `outputs/leaderboard.csv`;
+4. install and build the web app (`web/`, React + Tailwind CSS + shadcn/ui);
+5. serve it on **http://localhost:8000** and open it in your browser.
 
 | Option | Effect |
 |---|---|
-| `./run.sh --no-build` | skip the download and the analysis, reuse the committed `web/data/data.json` (starts in a few seconds) |
+| `./run.sh --no-build` | skip Python, the download and the analysis; reuse the committed `web/public/data/data.json` (only Node.js needed) |
 | `PORT=9000 ./run.sh` | serve on another port |
 | `NO_BROWSER=1 ./run.sh` | do not open the browser automatically |
 | `.venv/bin/python -m pipeline` | run only the analysis |
+| `npm --prefix web run dev` | web app in development mode (hot reload) |
 | `http://localhost:8000/?help=0` | open the app without the automatic help dialog |
 
-`web/data/data.json` is committed, so the app also works as a static site (for example GitHub Pages pointing at the `web/` folder) without running Python.
+The built site (`web/dist/`) is static, so it can also be hosted as is (for example on GitHub Pages).
 
 ---
 
 ## What is in the app
 
+New to football? The app opens with a one-minute explanation and a glossary, and every technical word has a tooltip.
+
 | Tab | For | What it shows |
 |---|---|---|
-| **Watch plays** | broadcaster | 90 showcase plays replayed on a field (smooth 60 fps animation, positions interpolated between the 10 Hz tracking frames). Each route runner has a ring coloured by his live catch probability, a dashed line to his nearest defender, and a timeline of the probability of every receiver from snap to throw. Three categories: *Open receiver ignored*, *Wide-open catch*, *Tight-window catch*. |
-| **Players** | scout | Sortable, searchable table of 180 receivers (≥ 80 routes): SOE, SOE vs man, SOE vs zone, open at throw, ignored opens. Clicking a player opens a card with percentiles, a plain-language verdict ("man-coverage beater", "zone specialist") and a button to watch his plays. |
-| **Game Plan** | coach | Pick your offense and the opponent's defense. The opponent's man/zone mix is weighted against each of your receivers' SOE vs man and vs zone to rank who to feature. |
-| **How it works** | everyone | Validation chart (completion vs space), model calibration chart, metric definitions and limits. |
-
-New to football? The app opens with a one-minute explanation and a glossary, and every technical word has a tooltip.
+| **Watch plays** | broadcaster | 90 showcase plays replayed on a field (smooth 60 fps animation, positions interpolated between the 10 Hz tracking frames). Each receiver has a ring coloured by his live catch probability, a dashed line to his nearest defender, and a chart of the probability of every receiver from snap to throw. Three categories: *Open receiver ignored*, *Wide-open catch*, *Tight-window catch*. |
+| **Players** | scout | Sortable, searchable table of 180 receivers (≥ 80 routes): extra space, vs man, vs zone, open when thrown, ignored while open. Clicking a player opens a profile with percentiles, a plain-language verdict ("beats man defense", "finds holes in zone") and a button to watch his plays. |
+| **Game plan** | coach | Pick your team and the next opponent. The opponent's man/zone mix is weighted against each of your receivers' space vs man and vs zone to rank who to feature. |
+| **How it works** | everyone | Validation chart (catch rate vs space), model calibration chart, definitions and limits. |
 
 ![Help](outputs/screenshots/help.png)
 ![Players](outputs/screenshots/board.png)
@@ -59,9 +61,9 @@ New to football? The app opens with a one-minute explanation and a glossary, and
 3. **Target**: the tracking does not name the targeted receiver (and stops 0.5 s after the throw), so we read the receiver's name in the official play text (`pass short right to C.Godwin`): 7,287 passes identified.
 4. **Model**: logistic regression and gradient boosting are compared with 5-fold cross-validation on targeted throws (C vs I/IN). The best one (gradient boosting, AUC 0.75) is then applied to **every frame of every route**, which gives the live probability.
 5. **Metrics**
-   - *Separation Over Expected*: space at the throw minus the mean of the same PFF alignment (e.g. `SLWR`, `TE-L`, `HB`) against the same coverage type (man / zone).
-   - *Open at throw*: share of routes with a catch probability ≥ 80% at the throw.
-   - *Ignored open*: the receiver had the highest probability on the play, ≥ 80%, and someone else was targeted.
+   - *Separation Over Expected* (“extra space”): space at the throw minus the mean of the same PFF alignment (e.g. `SLWR`, `TE-L`, `HB`) against the same coverage type (man / zone).
+   - *Open when thrown*: share of routes with a catch probability ≥ 80% at the throw.
+   - *Ignored while open*: the receiver had the highest probability on the play, ≥ 80%, and someone else was targeted.
    - *Game plan score*: `man_rate × SOE_man + (1 − man_rate) × SOE_zone`.
 
 **Limits**: only weeks 1-8 of 2021; the target comes from the play text (a few plays with unusual names are skipped); the model only knows positions and speeds (no pressure on the QB, no ball placement); probabilities before the throw are an extrapolation of a model trained at the throw; running backs get easy space on check-downs, which is why SOE compares them only to other backfield alignments.
@@ -71,35 +73,37 @@ New to football? The app opens with a one-minute explanation and a glossary, and
 ## Project structure
 
 ```
-run.sh                 one command: setup, download, analysis, web server
-requirements.txt
-pipeline/              Python analysis (python -m pipeline)
-  config.py            paths and constants (thresholds, event names)
-  targets.py           targeted receiver read from the play description
-  loading.py           read the csv files
-  geometry.py          field orientation, key frames, nearest defender
-  features.py          per-frame features of every route runner
-  model.py             completion probability model (train, compare, predict)
-  metrics.py           route, player and team metrics, validation tables
-  replays.py           pick showcase plays and extract their tracking
-  export.py            write web/data/data.json
-  __main__.py          runs the steps in order
-web/                   static web app, no build step
-  index.html
-  css/style.css        shadcn/ui default theme tokens (paste any ui.shadcn.com theme to restyle)
-  js/main.js           loads the data, tabs, light / dark theme
-  js/help.js           "New to football?" dialog and glossary
-  js/replay.js         Watch plays: smooth playback and timeline
-  js/field.js          canvas rendering of the field and players
-  js/board.js          Players table and profile card
-  js/planner.js        Game Plan
-  js/method.js         Method tab
-  js/charts.js         small SVG charts
-  js/utils.js          DOM and formatting helpers
-  data/data.json       generated by the pipeline
+run.sh                     one command: setup, download, analysis, build, serve
+requirements.txt           Python dependencies
+pipeline/                  Python analysis (python -m pipeline)
+  config.py                paths and constants (thresholds, event names)
+  loading.py               read the csv files
+  geometry.py              field orientation, key frames, nearest defender
+  features.py              per-frame features of every route runner
+  targets.py               targeted receiver read from the play description
+  model.py                 completion probability model (train, compare, predict)
+  metrics.py               route, player and team metrics, validation tables
+  replays.py               pick showcase plays and extract their tracking
+  export.py                write web/public/data/data.json
+  __main__.py              runs the steps in order
+web/                       web app: Vite + React + TypeScript + Tailwind CSS + shadcn/ui
+  public/data/data.json    generated by the pipeline (committed)
+  src/
+    App.tsx                layout, header, tabs
+    types.ts               shape of data.json
+    components/ui/         shadcn/ui components (generated by the shadcn CLI)
+    components/            HelpDialog, Kpis, Term (tooltip), PositionBadge
+    features/plays/        Watch plays: PlaysTab, FieldCanvas, Timeline, PlayList, PlayStory, HowToRead
+    features/players/      Players: PlayersTab, PlayersTable, PlayerProfile, columns
+    features/plan/         Game plan
+    features/method/       How it works (shadcn charts)
+    hooks/                 useAppData, usePlayback (smooth animation), useTheme
+    lib/field.ts           canvas drawing of the field and players
+    lib/format.ts          formatting and small helpers
+  src/index.css            shadcn theme (paste any theme from ui.shadcn.com/themes to restyle)
 outputs/
-  leaderboard.csv      full receiver table
-  screenshots/         images of the app
+  leaderboard.csv          full receiver table
+  screenshots/             images of the app
 ```
 
 Data: [NFL Big Data Bowl regional event data](https://github.com/ThompsonJamesBliss/nfl-big-data-bowl-regional-event-data) (NFL Next Gen Stats tracking + PFF scouting, 2021 weeks 1-8).

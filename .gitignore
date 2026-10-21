@@ -2,3 +2,5 @@
 raw_data/
 __pycache__/
 .claude/
+web/node_modules/
+web/dist/

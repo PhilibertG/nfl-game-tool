@@ -4,7 +4,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "raw_data" / "data"
 TRACKING_DIR = DATA_DIR / "tracking"
-WEB_DATA = ROOT / "web" / "data" / "data.json"
+WEB_DATA = ROOT / "web" / "public" / "data" / "data.json"
 OUTPUT_DIR = ROOT / "outputs"
 
 FPS = 10
