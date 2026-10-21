@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Open Window Lab</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <h1>Open Window Lab</h1>
+      <p>Who gets open, when, and who the quarterback leaves on the table. WR · TE · RB, NFL 2021 weeks 1-8.</p>
+    </div>
+    <div class="kpis" id="kpis"></div>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button data-tab="lab" class="active">Play Lab</button>
+    <button data-tab="board">Receivers</button>
+    <button data-tab="plan">Game Plan</button>
+    <button data-tab="method">Method</button>
+  </nav>
+
+  <main>
+    <section id="tab-lab" class="tab active">
+      <div class="lab">
+        <aside class="playlist">
+          <select id="category"></select>
+          <ul id="plays"></ul>
+        </aside>
+        <div class="stage">
+          <div class="play-head" id="play-head"></div>
+          <canvas id="field" width="1200" height="533"></canvas>
+          <div class="controls">
+            <button id="prev" title="Previous play">⏮</button>
+            <button id="toggle" title="Play / pause">▶</button>
+            <button id="next" title="Next play">⏭</button>
+            <input id="scrub" type="range" min="0" value="0">
+            <select id="speed">
+              <option value="0.5">0.5×</option>
+              <option value="1" selected>1×</option>
+              <option value="2">2×</option>
+            </select>
+            <span id="clock" class="clock"></span>
+          </div>
+          <div class="timeline-wrap">
+            <h3>Completion probability if thrown now</h3>
+            <div id="timeline"></div>
+          </div>
+          <p class="legend">
+            <span class="dot offense"></span>offense <span class="dot defense"></span>defense
+            <span class="dot ball"></span>ball · ring colour = chance of a catch if thrown at that moment ·
+            grey line = nearest defender
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-board" class="tab">
+      <div class="board-tools">
+        <input id="search" type="search" placeholder="Search a player or team">
+        <div class="chips" id="positions"></div>
+      </div>
+      <div class="board">
+        <div class="table-wrap"><table id="board"></table></div>
+        <div class="card" id="card"><p class="muted">Click a player to see his profile.</p></div>
+      </div>
+    </section>
+
+    <section id="tab-plan" class="tab">
+      <div class="plan-tools">
+        <label>Our offense <select id="offense"></select></label>
+        <label>Opponent defense <select id="defense"></select></label>
+      </div>
+      <div id="plan"></div>
+    </section>
+
+    <section id="tab-method" class="tab">
+      <div id="method"></div>
+    </section>
+  </main>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
