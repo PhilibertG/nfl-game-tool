@@ -132,7 +132,7 @@
 :root {
   --offense: #3b82f6;
   --defense: #ef4444;
-  --ball: #2bb409;
+  --ball: #000000;
   --positive: oklch(0.6 0.15 150);
   --negative: oklch(0.577 0.245 27.325);
   --pos-wr: #3b82f6;

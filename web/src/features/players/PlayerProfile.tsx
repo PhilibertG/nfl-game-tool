@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import { pct, percentile, signClass, topShare, yds } from "@/lib/format"
 import type { Player } from "@/types"
-import { column } from "./columns"
+import { column, OPEN_RATE_TIP } from "./columns"
 
 function verdicts(p: Player) {
   const man = p.soe_man ?? 0
@@ -32,12 +32,12 @@ export function PlayerProfile({ player: p, all, hasPlays, onWatch }: Props) {
     return (
       <div className="grid gap-1.5">
         <div className="flex justify-between text-sm">
-          <Term tip={column(key).tip ?? ""}>{label}</Term>
+          <Term tip={column(key)?.tip ?? OPEN_RATE_TIP}>{label}</Term>
           <b className={signed ? signClass(value) : ""}>{format(value)}</b>
         </div>
         <Progress value={Math.round(share * 100)} />
         <span className="text-xs text-muted-foreground">
-          {topShare(share)} of the {all.length} receivers
+          Better than {Math.round(share * (all.length - 1))} of the {all.length} receivers ({topShare(share)})
         </span>
       </div>
     )

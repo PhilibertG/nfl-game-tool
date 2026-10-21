@@ -1,8 +1,10 @@
 import type { ReactNode } from "react"
-import { Bar, BarChart, CartesianGrid, LabelList, ReferenceLine, Scatter, ScatterChart, XAxis, YAxis, ZAxis } from "recharts"
+import { CartesianGrid, ReferenceLine, Scatter, ScatterChart, XAxis, YAxis, ZAxis } from "recharts"
 
-import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
+import { LookingAt } from "@/components/LookingAt"
+import { ChartContainer, type ChartConfig } from "@/components/ui/chart"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { SpaceChart } from "@/components/charts/SpaceChart"
 import { pct } from "@/lib/format"
 import type { AppData } from "@/types"
 
@@ -20,27 +22,20 @@ function Section({ title, description, children }: { title: string; description:
   )
 }
 
-const spaceConfig = { completion: { label: "Caught", color: "var(--chart-2)" } } satisfies ChartConfig
 const calibrationConfig = { real: { label: "Real catch rate", color: "var(--chart-1)" } } satisfies ChartConfig
 
 export function HowItWorksTab({ data }: { data: AppData }) {
   const m = data.model
-  const space = data.validation.map((v) => ({ ...v, label: `${v.bin} yd` }))
 
   return (
+    <div className="grid gap-4">
+    <LookingAt
+      look="the two charts: they check that our numbers can be trusted."
+      meaning="left, more space really gives more catches; right, when the model announces 70% about 70% of those passes are caught (dots on the dashed line = honest model)."
+    />
     <div className="grid gap-4 lg:grid-cols-2">
       <Section title="1. Space really matters" description="Share of passes caught, depending on the distance between the receiver and the closest defender when the ball was thrown.">
-        <ChartContainer config={spaceConfig} className="aspect-auto h-[260px] w-full">
-          <BarChart data={space} margin={{ top: 24 }}>
-            <CartesianGrid vertical={false} />
-            <XAxis dataKey="label" tickLine={false} axisLine={false} />
-            <YAxis domain={[0, 1]} tickFormatter={percent} tickLine={false} axisLine={false} width={40} />
-            <ChartTooltip content={<ChartTooltipContent formatter={(v, _n, item) => `${percent(Number(v))} caught (${item.payload.n} passes)`} />} />
-            <Bar dataKey="completion" fill="var(--color-completion)" radius={6} isAnimationActive={false}>
-              <LabelList dataKey="completion" position="top" formatter={(v) => percent(Number(v))} className="fill-foreground font-semibold" />
-            </Bar>
-          </BarChart>
-        </ChartContainer>
+        <SpaceChart data={data} />
       </Section>
 
       <Section title="2. The model's predictions are honest" description="When the model says “70%”, about 70% of those passes are really caught: dots close to the dashed line mean the predictions can be trusted.">
@@ -87,6 +82,7 @@ export function HowItWorksTab({ data }: { data: AppData }) {
           quarterback.
         </p>
       </Section>
+    </div>
     </div>
   )
 }

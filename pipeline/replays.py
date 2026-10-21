@@ -21,7 +21,10 @@ def select_plays(routes):
         "tight_catch": caught.nsmallest(n, "p_throw"),
     }
     rows = [df[PLAY_KEY].assign(category=cat, focus=df.nflId) for cat, df in picks.items()]
-    return pd.concat(rows).drop_duplicates(PLAY_KEY)
+    selection = pd.concat(rows).drop_duplicates(PLAY_KEY)
+    # who actually got the ball (to annotate the replay)
+    targets = routes[routes.target][PLAY_KEY + ["nflId"]].rename(columns={"nflId": "target"})
+    return selection.merge(targets.drop_duplicates(PLAY_KEY), on=PLAY_KEY, how="left")
 
 
 def _round(values, digits=2):
@@ -75,6 +78,7 @@ def extract(selection, frames, plays, roles, players):
             pick = wanted.loc[key]
             info = meta.loc[key]
             payload.update(category=pick.category, focus=int(pick.focus),
+                           target=None if pd.isna(pick.target) else int(pick.target),
                            description=info.playDescription, result=info.passResult,
                            yards=int(info.playResult), coverage=str(info.pff_passCoverage),
                            offense=info.possessionTeam, defense=info.defensiveTeam,

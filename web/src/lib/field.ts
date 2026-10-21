@@ -3,6 +3,7 @@
 // Offense always attacks to the right.
 
 import { lastName, lerp, probColor, sampleAt } from "@/lib/format"
+import { throwMoment } from "@/lib/throw"
 import type { Entity, Replay } from "@/types"
 
 const LENGTH = 120
@@ -82,8 +83,33 @@ function nearest(points: Point[], p: Point) {
   return best
 }
 
-/** Draw the play at fractional frame index i. */
-export function drawFrame(canvas: HTMLCanvasElement, play: Replay, i: number) {
+function tag(ctx: CanvasRenderingContext2D, s: number, at: Point, text: string, color: string) {
+  const x = at.x * s
+  const y = (WIDTH - at.y) * s + 3.2 * s
+  ctx.font = `700 ${Math.round(1.35 * s)}px "Geist Variable", system-ui`
+  const w = ctx.measureText(text).width + 1.4 * s
+  ctx.fillStyle = color
+  ctx.beginPath()
+  ctx.roundRect(x - w / 2, y - s, w, 2 * s, s)
+  ctx.fill()
+  ctx.fillStyle = "#fff"
+  ctx.textAlign = "center"
+  ctx.textBaseline = "middle"
+  ctx.fillText(text, x, y)
+}
+
+/** From the throw on: label the most open receiver and the one who got the ball. */
+function annotateThrow(ctx: CanvasRenderingContext2D, s: number, play: Replay, positions: Map<number, Point>) {
+  const { best, target, smart } = throwMoment(play)
+  const bestPos = positions.get(best.id!)
+  if (target && smart && bestPos) return tag(ctx, s, bestPos, "BALL GOES HERE · MOST OPEN", "#16a34a")
+  if (bestPos) tag(ctx, s, bestPos, "MOST OPEN", "#16a34a")
+  const targetPos = target && positions.get(target.id!)
+  if (targetPos) tag(ctx, s, targetPos, "BALL GOES HERE", "#b45309")
+}
+
+/** Draw the play at fractional frame index i. `annotate` adds the labels of the throw moment. */
+export function drawFrame(canvas: HTMLCanvasElement, play: Replay, i: number, annotate = true) {
   const ctx = canvas.getContext("2d")
   if (!ctx || canvas.width === 0) return
   const s = canvas.width / LENGTH
@@ -143,6 +169,10 @@ export function drawFrame(canvas: HTMLCanvasElement, play: Replay, i: number) {
     ctx.textAlign = "center"
     ctx.textBaseline = "middle"
     ctx.fillText(label, x, ly)
+  }
+
+  if (annotate && i >= play.throwIndex) {
+    annotateThrow(ctx, s, play, new Map(receivers.map((r) => [r.id!, r.pos])))
   }
 
   const b = position(ball, i)

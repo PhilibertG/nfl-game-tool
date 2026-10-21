@@ -49,7 +49,10 @@ export interface Replay {
   throwIndex: number
   entities: Entity[]
   category: Category
+  /** receiver this play is about */
   focus: number
+  /** receiver who actually got the ball */
+  target: number | null
   description: string
   result: string
   yards: number

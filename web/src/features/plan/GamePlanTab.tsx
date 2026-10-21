@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react"
 
+import { LookingAt } from "@/components/LookingAt"
 import { PositionBadge } from "@/components/PositionBadge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -49,6 +50,10 @@ export function GamePlanTab({ data }: { data: AppData }) {
 
   return (
     <div className="grid gap-4">
+      <LookingAt
+        look="pick your team and next week's opponent, then read the recommendation on the left and the ranking on the right."
+        meaning="some defenses follow receivers one-on-one (man), others guard areas (zone). Each receiver gets free more against one or the other, so the best target changes with the opponent. +0.6 yd = he should get 0.6 yard more space than an average receiver in his spot against this defense."
+      />
       <div className="flex flex-wrap gap-4">
         <TeamSelect label="Your team (attack)" value={offense} options={offenses} onChange={setOffense} />
         <TeamSelect label="Next opponent (defense)" value={defense} options={defenses} onChange={setDefense} />

@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react"
 import { Search } from "lucide-react"
 
+import { LookingAt } from "@/components/LookingAt"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { POSITION_NAMES } from "@/lib/format"
+import { POSITION_NAMES, yds } from "@/lib/format"
 import type { AppData, Player, Position } from "@/types"
 import { PlayerProfile } from "./PlayerProfile"
 import { PlayersTable, type Sort } from "./PlayersTable"
@@ -36,8 +37,27 @@ export function PlayersTab({ data, onWatchPlayer }: Props) {
     return sortRows(filtered, sort)
   }, [data, query, position, sort])
 
+  const bySpace = useMemo(() => [...data.players].sort((a, b) => b.soe - a.soe), [data])
+  const rank = useMemo(() => new Map(bySpace.map((p, i) => [p.nflId, i + 1])), [bySpace])
+  const best = bySpace[0]
+  const worst = bySpace[bySpace.length - 1]
+
   return (
     <div className="grid gap-4">
+      <LookingAt
+        look={
+          <>
+            the <b>Extra space</b> column. Each row is a receiver; the number after # is his rank out of {data.players.length}. Click a row for his
+            profile in plain words.
+          </>
+        }
+        meaning={
+          <>
+            0 = an average receiver starting from the same spot against the same defense. Above 0 he gets free more often, below 0 less. Range: from{" "}
+            {yds(best.soe)} ({best.displayName}) to {yds(worst.soe)} ({worst.displayName}). “vs man” / “vs zone” split it by type of defense.
+          </>
+        }
+      />
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-60 flex-1">
           <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -54,7 +74,7 @@ export function PlayersTab({ data, onWatchPlayer }: Props) {
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
         <Card className="max-h-[720px] overflow-auto py-0">
-          <PlayersTable rows={rows} sort={sort} onSort={setSort} selected={selected.nflId} onSelect={setSelected} />
+          <PlayersTable rows={rows} sort={sort} onSort={setSort} selected={selected.nflId} onSelect={setSelected} rank={rank} />
         </Card>
         <PlayerProfile
           player={selected}

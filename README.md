@@ -39,10 +39,11 @@ The built site (`web/dist/`) is static, so it can also be hosted as is (for exam
 
 ## What is in the app
 
-New to football? The app opens with a one-minute explanation and a glossary, and every technical word has a tooltip.
+New to football? The app opens with a one-minute explanation and a glossary, every tab starts with a "What you are looking at" box (what to look at, what it means), and every technical word has a tooltip.
 
 | Tab | For | What it shows |
 |---|---|---|
+| **Start here** | everyone | Guided page in 3 steps: one annotated example play (the animation stops at the throw and labels the most open receiver and the one who got the ball), why space matters (catch rate chart), and the top 10 receivers by extra space. |
 | **Watch plays** | broadcaster | 90 showcase plays replayed on a field (smooth 60 fps animation, positions interpolated between the 10 Hz tracking frames). Each receiver has a ring coloured by his live catch probability, a dashed line to his nearest defender, and a chart of the probability of every receiver from snap to throw. Three categories: *Open receiver ignored*, *Wide-open catch*, *Tight-window catch*. |
 | **Players** | scout | Sortable, searchable table of 180 receivers (≥ 80 routes): extra space, vs man, vs zone, open when thrown, ignored while open. Clicking a player opens a profile with percentiles, a plain-language verdict ("beats man defense", "finds holes in zone") and a button to watch his plays. |
 | **Game plan** | coach | Pick your team and the next opponent. The opponent's man/zone mix is weighted against each of your receivers' space vs man and vs zone to rank who to feature. |

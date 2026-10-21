@@ -2,7 +2,6 @@ import { useEffect, useState } from "react"
 import { Moon, Sun } from "lucide-react"
 
 import { HelpDialog } from "@/components/HelpDialog"
-import { Kpis } from "@/components/Kpis"
 import { Term } from "@/components/Term"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -11,10 +10,12 @@ import { HowItWorksTab } from "@/features/method/HowItWorksTab"
 import { GamePlanTab } from "@/features/plan/GamePlanTab"
 import { PlayersTab } from "@/features/players/PlayersTab"
 import { PlaysTab } from "@/features/plays/PlaysTab"
+import { StoryTab } from "@/features/story/StoryTab"
 import { useAppData } from "@/hooks/useAppData"
 import { useTheme } from "@/hooks/useTheme"
 
 const TABS = [
+  ["story", "Start here"],
   ["lab", "Watch plays"],
   ["board", "Players"],
   ["plan", "Game plan"],
@@ -22,8 +23,8 @@ const TABS = [
 ] as const
 type Tab = (typeof TABS)[number][0]
 
-// tabs can be opened by link: #board, #plan, #method
-const initialTab = (): Tab => (TABS.find(([id]) => `#${id}` === location.hash)?.[0] ?? "lab")
+// tabs can be opened by link: #lab, #board, #plan, #method
+const initialTab = (): Tab => (TABS.find(([id]) => `#${id}` === location.hash)?.[0] ?? "story")
 
 export default function App() {
   const { data, error } = useAppData()
@@ -78,7 +79,9 @@ export default function App() {
           {error && <p className="text-destructive">Error: {error}</p>}
           {data && (
             <>
-              <Kpis data={data} />
+              <TabsContent value="story">
+                <StoryTab data={data} dark={theme.dark} goTo={(t) => { setTab(t); window.scrollTo(0, 0) }} />
+              </TabsContent>
               <TabsContent value="lab">
                 <PlaysTab data={data} dark={theme.dark} playerFilter={playerFilter} onClearFilter={() => setPlayerFilter(null)} />
               </TabsContent>

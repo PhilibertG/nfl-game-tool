@@ -15,9 +15,11 @@ type Props = {
   onSort: (s: Sort) => void
   selected: number
   onSelect: (p: Player) => void
+  /** rank of each player on extra space (1 = most open) */
+  rank: Map<number, number>
 }
 
-export function PlayersTable({ rows, sort, onSort, selected, onSelect }: Props) {
+export function PlayersTable({ rows, sort, onSort, selected, onSelect, rank }: Props) {
   return (
     <Table>
       <TableHeader className="sticky top-0 z-10 bg-card">
@@ -57,6 +59,7 @@ export function PlayersTable({ rows, sort, onSort, selected, onSelect }: Props) 
               return (
                 <TableCell key={c.key} className={cn("text-right tabular-nums", c.signed && signClass(v))}>
                   {c.format ? c.format(v) : v}
+                  {c.key === "soe" && <span className="ml-1.5 text-xs text-muted-foreground">#{rank.get(p.nflId)}</span>}
                 </TableCell>
               )
             })}
