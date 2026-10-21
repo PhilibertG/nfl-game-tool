@@ -46,6 +46,7 @@ New to football? The app opens with a one-minute explanation and a glossary, eve
 | **Start here** | everyone | Guided page in 3 steps: one annotated example play (the animation stops at the throw and labels the most open receiver and the one who got the ball), why space matters (catch rate chart), and the top 10 receivers by extra space. |
 | **Watch plays** | broadcaster | 90 showcase plays replayed on a field (smooth 60 fps animation, positions interpolated between the 10 Hz tracking frames). Each receiver has a ring coloured by his live catch probability, a dashed line to his nearest defender, and a chart of the probability of every receiver from snap to throw. Three categories: *Open receiver ignored*, *Wide-open catch*, *Tight-window catch*. |
 | **Players** | scout | Sortable, searchable table of 180 receivers (≥ 80 routes): extra space, vs man, vs zone, open when thrown, ignored while open. Clicking a player opens a profile with percentiles, a plain-language verdict ("beats man defense", "finds holes in zone") and a button to watch his plays. |
+| **Compare** | scout, coach | Two receivers side by side: every metric with its rank among all receivers, a plain-language verdict, the share of man defense at which the better choice switches from one to the other (and which of the 32 defenses fall on each side), and a man-vs-zone map of all receivers. Open it from a player profile (“Compare with another receiver”) or by link (`#compare`). |
 | **Game plan** | coach | Pick your team and the next opponent. The opponent's man/zone mix is weighted against each of your receivers' space vs man and vs zone to rank who to feature. |
 | **How it works** | everyone | Validation chart (catch rate vs space), model calibration chart, definitions and limits. |
 
@@ -96,11 +97,13 @@ web/                       web app: Vite + React + TypeScript + Tailwind CSS + s
     components/            HelpDialog, Kpis, Term (tooltip), PositionBadge
     features/plays/        Watch plays: PlaysTab, FieldCanvas, Timeline, PlayList, PlayStory, HowToRead
     features/players/      Players: PlayersTab, PlayersTable, PlayerProfile, columns
+    features/compare/      Compare: CompareTab, HeadToHead, MatchupChart, ManZoneChart, duel (verdict maths)
     features/plan/         Game plan
     features/method/       How it works (shadcn charts)
     hooks/                 useAppData, usePlayback (smooth animation), useTheme
     lib/field.ts           canvas drawing of the field and players
     lib/format.ts          formatting and small helpers
+    lib/plan.ts            game plan formula, shared by Game plan and Compare
   src/index.css            shadcn theme (paste any theme from ui.shadcn.com/themes to restyle)
 outputs/
   leaderboard.csv          full receiver table

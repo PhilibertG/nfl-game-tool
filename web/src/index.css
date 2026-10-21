@@ -138,11 +138,15 @@
   --pos-wr: #3b82f6;
   --pos-te: #10b981;
   --pos-rb: #f59e0b;
+  --compare-a: #2a78d6;
+  --compare-b: #eb6834;
 }
 
 .dark {
   --positive: oklch(0.72 0.16 150);
   --negative: oklch(0.704 0.191 22.216);
+  --compare-a: #3987e5;
+  --compare-b: #d95926;
 }
 
 @theme inline {
@@ -154,4 +158,6 @@
   --color-pos-wr: var(--pos-wr);
   --color-pos-te: var(--pos-te);
   --color-pos-rb: var(--pos-rb);
+  --color-compare-a: var(--compare-a);
+  --color-compare-b: var(--compare-b);
 }

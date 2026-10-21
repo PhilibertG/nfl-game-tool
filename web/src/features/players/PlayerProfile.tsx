@@ -1,4 +1,4 @@
-import { Play } from "lucide-react"
+import { ArrowLeftRight, Play } from "lucide-react"
 
 import { PositionBadge } from "@/components/PositionBadge"
 import { Term } from "@/components/Term"
@@ -23,9 +23,9 @@ function verdicts(p: Player) {
   return out
 }
 
-type Props = { player: Player; all: Player[]; hasPlays: boolean; onWatch: () => void }
+type Props = { player: Player; all: Player[]; hasPlays: boolean; onWatch: () => void; onCompare?: () => void }
 
-export function PlayerProfile({ player: p, all, hasPlays, onWatch }: Props) {
+export function PlayerProfile({ player: p, all, hasPlays, onWatch, onCompare }: Props) {
   const stat = (key: keyof Player, label: string, format: (v: number | null) => string, signed = true) => {
     const value = p[key] as number | null
     const share = percentile(all.map((x) => x[key] as number | null), value)
@@ -72,6 +72,11 @@ export function PlayerProfile({ player: p, all, hasPlays, onWatch }: Props) {
         {hasPlays && (
           <Button onClick={onWatch} className="w-full">
             <Play /> Watch his plays
+          </Button>
+        )}
+        {onCompare && (
+          <Button variant="outline" onClick={onCompare} className="w-full">
+            <ArrowLeftRight /> Compare with another receiver
           </Button>
         )}
       </CardContent>

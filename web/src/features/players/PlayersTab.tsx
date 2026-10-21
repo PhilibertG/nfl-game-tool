@@ -10,7 +10,7 @@ import type { AppData, Player, Position } from "@/types"
 import { PlayerProfile } from "./PlayerProfile"
 import { PlayersTable, type Sort } from "./PlayersTable"
 
-type Props = { data: AppData; onWatchPlayer: (id: number) => void }
+type Props = { data: AppData; onWatchPlayer: (id: number) => void; onComparePlayer?: (id: number) => void }
 
 const POSITIONS: ("ALL" | Position)[] = ["ALL", "WR", "TE", "RB"]
 
@@ -23,7 +23,7 @@ function sortRows(rows: Player[], { key, desc }: Sort) {
   })
 }
 
-export function PlayersTab({ data, onWatchPlayer }: Props) {
+export function PlayersTab({ data, onWatchPlayer, onComparePlayer }: Props) {
   const [query, setQuery] = useState("")
   const [position, setPosition] = useState<"ALL" | Position>("ALL")
   const [sort, setSort] = useState<Sort>({ key: "soe", desc: true })
@@ -81,6 +81,7 @@ export function PlayersTab({ data, onWatchPlayer }: Props) {
           all={data.players}
           hasPlays={data.replays.some((r) => r.focus === selected.nflId)}
           onWatch={() => onWatchPlayer(selected.nflId)}
+          onCompare={onComparePlayer && (() => onComparePlayer(selected.nflId))}
         />
       </div>
     </div>

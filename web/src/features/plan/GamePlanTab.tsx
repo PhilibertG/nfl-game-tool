@@ -6,11 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { pct, signClass, yds } from "@/lib/format"
-import type { AppData, Player } from "@/types"
-
-/** Space a receiver should get against a defense = his space vs man / zone weighted by how often it plays each. */
-const expectedSpace = (p: Player, manRate: number) =>
-  manRate * (p.soe_man ?? p.soe) + (1 - manRate) * (p.soe_zone ?? p.soe)
+import { expectedSpace, leagueManRate } from "@/lib/plan"
+import type { AppData } from "@/types"
 
 function TeamSelect({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (v: string) => void }) {
   return (
@@ -35,7 +32,7 @@ function TeamSelect({ label, value, options, onChange }: { label: string; value:
 export function GamePlanTab({ data }: { data: AppData }) {
   const offenses = useMemo(() => [...new Set(data.players.map((p) => p.team))].sort(), [data])
   const defenses = useMemo(() => data.teams.map((t) => t.team).sort(), [data])
-  const leagueMan = data.teams.reduce((s, t) => s + t.man_rate, 0) / data.teams.length
+  const leagueMan = leagueManRate(data.teams)
   const [offense, setOffense] = useState(offenses.includes("BAL") ? "BAL" : offenses[0])
   const [defense, setDefense] = useState(() => [...data.teams].sort((a, b) => b.man_rate - a.man_rate)[0].team)
 

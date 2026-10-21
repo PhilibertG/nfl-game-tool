@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { HowItWorksTab } from "@/features/method/HowItWorksTab"
+import { CompareTab } from "@/features/compare/CompareTab"
 import { GamePlanTab } from "@/features/plan/GamePlanTab"
 import { PlayersTab } from "@/features/players/PlayersTab"
 import { PlaysTab } from "@/features/plays/PlaysTab"
@@ -18,12 +19,13 @@ const TABS = [
   ["story", "Start here"],
   ["lab", "Watch plays"],
   ["board", "Players"],
+  ["compare", "Compare"],
   ["plan", "Game plan"],
   ["method", "How it works"],
 ] as const
 type Tab = (typeof TABS)[number][0]
 
-// tabs can be opened by link: #lab, #board, #plan, #method
+// tabs can be opened by link: #lab, #board, #compare, #plan, #method
 const initialTab = (): Tab => (TABS.find(([id]) => `#${id}` === location.hash)?.[0] ?? "story")
 
 export default function App() {
@@ -31,12 +33,19 @@ export default function App() {
   const theme = useTheme()
   const [tab, setTab] = useState<Tab>(initialTab)
   const [playerFilter, setPlayerFilter] = useState<number | null>(null)
+  const [compareFirst, setCompareFirst] = useState<number | null>(null)
 
   useEffect(() => history.replaceState(null, "", `${location.search}#${tab}`), [tab])
 
   const watchPlayer = (id: number) => {
     setPlayerFilter(id)
     setTab("lab")
+  }
+
+  const comparePlayer = (id: number) => {
+    setCompareFirst(id)
+    setTab("compare")
+    window.scrollTo(0, 0)
   }
 
   return (
@@ -86,7 +95,10 @@ export default function App() {
                 <PlaysTab data={data} dark={theme.dark} playerFilter={playerFilter} onClearFilter={() => setPlayerFilter(null)} />
               </TabsContent>
               <TabsContent value="board">
-                <PlayersTab data={data} onWatchPlayer={watchPlayer} />
+                <PlayersTab data={data} onWatchPlayer={watchPlayer} onComparePlayer={comparePlayer} />
+              </TabsContent>
+              <TabsContent value="compare">
+                <CompareTab key={compareFirst ?? "default"} data={data} first={compareFirst} />
               </TabsContent>
               <TabsContent value="plan">
                 <GamePlanTab data={data} />
